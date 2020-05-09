@@ -1,0 +1,4 @@
+#don't upload personal data
+data/
+#fricking macs
+.DS_Store
