@@ -60,7 +60,7 @@ def cheapest_print(cardData, foil, set_code, col_number):
             col_num_cleared = False
             if col_number == 0:
                 col_num_cleared = True
-            elif int(price["collector_number"]) == col_number:
+            elif price["collector_number"].upper() == str(col_number).upper():
                 col_num_cleared = True
             #if specific set wanted...
             set_cleared = False
