@@ -2,3 +2,6 @@
 data/
 #fricking macs
 .DS_Store
+#api stuff teehee
+credentials.json
+token.pickle
