@@ -1,12 +1,16 @@
 import sys
 import csv
 #Given a name and a file, deletes one instance of the card from that file or returns not found
+# FILE = FIRST ARGUMENT, CARD = SECOND ARGUMENT
 #---------------------------
+CSV_ARG_POS = 1
+CARD_ARG_POS = 2
 
 card_list = []
 card_name = ""
 list_result = []
 found = False
+card_qty = 0
 
 def read_file(file):
 	temp = []
@@ -23,16 +27,16 @@ def read_file(file):
 	return temp
 
 try:
-    with open(sys.argv[2]) as csvfile:
+    with open(sys.argv[CSV_ARG_POS]) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
-        print(sys.argv[2] + " successfully read in")
-    print("Will delete one instance of "+sys.argv[1]+" in file")
+        print(sys.argv[CSV_ARG_POS] + " successfully read in")
+    print("Will delete one instance of "+sys.argv[CARD_ARG_POS]+" in file")
 except:
     print("ERROR: csv file could not be read. Please input name of csvs as second arg")
     sys.exit()
 
-card_file = sys.argv[2]
-card_name = sys.argv[1]
+card_file = sys.argv[CSV_ARG_POS]
+card_name = sys.argv[CARD_ARG_POS]
 
 card_list = read_file(card_file)
 
@@ -43,6 +47,7 @@ for i, val in enumerate(card_list):
 	#if the card hasn't already been found...
 	if not found and name == card_name:
 		found = True
+		card_qty = (qty - 1)
 		if qty > 1:
 			list_result.append((name, (qty - 1), price))
 	else:
@@ -54,6 +59,6 @@ if found:
 	    writer.writerow(["card","qty","price"])
 	    for card in list_result:
 	        writer.writerow([card[0], card[1], card[2]])
-	print("SUCCESS: " +sys.argv[1]+" found successfully and one copy removed!")
+	print("SUCCESS: " +sys.argv[CARD_ARG_POS]+" found and one copy removed. You have "+str(card_qty)+" copies remaining!")
 else:
-	print("ERROR: "+sys.argv[1] + " could not be found in the selected file...")
+	print("ERROR: "+sys.argv[CARD_ARG_POS] + " could not be found in the selected file...")
