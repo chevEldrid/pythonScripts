@@ -38,6 +38,7 @@ uploadCards = False
 bulk_ceiling = 0.99
 bulk_rate = 5 #x$/1000 bulk cards
 total_value = 0.0
+new_value = 0.0
 bulk_count = 0
 min_delt = 1.00
 min_mod = 0.10
@@ -225,31 +226,36 @@ del cards[0]
 for i, val in enumerate(cards):
     name = val[0]
     qty = int(val[1])
-    old_price = val[2]
+    old_price = float(val[2])
     #if the card hasn't already been found...
     if name not in result_names:
         if reprice:
             foil = is_foil(name)
             set_code = get_set_code(name)
             collector_number = get_collector_number(name)
-            price = get_price(name, foil, set_code, collector_number)
+            price = float(get_price(name, foil, set_code, collector_number))
         else:
-            price = val[2]
+            price = float(val[2])
         #iterate through every remaining entry in table, if condensing
         if condense:
             for j in range(i+1, len(cards)):
                 if cards[j][0] == name:
                     qty += int(cards[j][1])
         #if there was an error with the price pulling...
-        if float(price) > 0:
+        if price > 0:
             result.append((name, qty, price))
+            #keep track of new value added since last run (good when uploading a bunch of stuff)
+            if old_price == 0 and price > bulk_ceiling:
+                new_value += price
+            elif old_price == 0 and (price > 0 and price < bulk_ceiling):
+                new_value += (1/1000.0*bulk_rate)
             #if there's been a considerable change in price...
             #different conditions if price is sub dollar
-            delta = abs(float(price) - float(old_price))
+            delta = abs(price - old_price)
             min_reached = delta > min_delt
-            if min_reached and float(price) >= (1.0 + min_mod) * float(old_price):
+            if min_reached and price >= (1.0 + min_mod) * old_price:
                 print(bcolors.OKGREEN+"Spike"+bcolors.ENDC+" on: {0}: From ${1} to ${2} (You have {3})".format(name, old_price, price, qty))
-            if min_reached and float(price) <= (1.0 - min_mod) * float(old_price):
+            if min_reached and price <= (1.0 - min_mod) * old_price:
                 print(bcolors.FAIL+"Drop"+bcolors.ENDC+" on: {0}: From ${1} to ${2} (You have {3})".format(name, old_price, price, qty))
         else:
             result.append((name, qty, old_price))
@@ -271,6 +277,7 @@ with open(out_file, "w") as csvfile:
         writer.writerow([card[0], card[1], card[2]])
 collection_value = total_value + (bulk_count/1000.0*bulk_rate)
 print("Total collection valued at {0:.2f}, with bulk rated at {1} per thousand".format(collection_value, bulk_rate))
+print("New additions valued at {0:.2f}, with same bulk rating. Nice!".format(new_value))
 if uploadCards:
     print("Attempting to upload to the Google....")
     #assuming data folder
