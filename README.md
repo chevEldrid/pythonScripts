@@ -1,31 +1,42 @@
-Welcome to the wonderous world of random scripts!
-The virtual environment will be: scriptCollection
+A set of mtg collection-related scripts for inventory management and price comparisons
 
-Scripts:
-# articleGenerator.py
-articleGenerator.py -i inputfile
+## Scripts:
 
-Article Generator replaces all instances of mtg cards [[In Brackets]] with the appropriate anchor tags to allow hovering. All links lead to scryfall.
-Errors printed to console and given anchor tags with no hrefs
+### update_csv.py
 
-# update_csv.py
-update_csv.py inputfile [-r] [-p]
+```
+python update_csv.py data/inputfile [-r] [-p] [-g]
+```
 
-Update CSV is part of a couple scripts that help keep track of your mtg collection. Runs on a given .csv and pulls all price data from scryfall, printing any big changes in price
+update_csv.py given a csv file of cards located in a /data directory (this will become adjustable in upcomming release)
+
+It's a pain to keep a MTG card collection up to date with prices if you're accurately trying to evaluate their overall worth. While some websites will now host a collection for you, update_csv puts the power entirely in your hands. Once your initial collection is logged in a csv, periodically running it against update_csv.py will update your entire collection's worth, card by card, and sort them from most to least expensive. And if cards have changed dramatically in value, it'll print those changes to the terminal for easy analysis. The idea here is to not only get an accurate tally of what your collection is worth, but also more information on what your payout would look like to sell the whole thing.
 
 [-r] prevents price pulling, but will consolidate multiple copies of a card if they're found on different rows
 [-p] doesn't consolidate but pulls prices. I don't really know why this option exists but it seemed a good idea at the time...
+[-g] with google api downloaded, uploads inputfile.csv to specified path on google drive for backup purposes
 
-Program will also print a collection valuation at the end, with an adjustable "price ceiling" and "bulk rate" to fit current market trends
+Script printout can be adjusted by the following 4 variables:
 
-The % change in price to produce a print to console can also be adjusted
+- **MIN_DELT**: smallest absolute change in price you want for cards printed to terminal
+- **MIN_MOD**: smallest absolute percentage change in price you want for cards printed to terminal
+- **BULK_CEILING**: highest price on cards you want evaluated as bulk for total collection price evaluation purposes (this affects the math at the end)
+- **BULK_RATE**: Rate at which bulk is priced per 1,000 cards
 
-# delete_card.py
-delete_card.py "card name" inputfile
+Any cards with a price of "0" upon script run will be tallied seperately to provide a value of "new cards since last run", an easier way to see just how much those new commander cards or a box contents' are worth.
 
-To prevent needing to dig too much into the CSVs, especially for deletion - deletes one copy of a card from csv, or prints error if card not found
+### delete_card.py
 
-# fixup_collection.py
+```
+delete_card.py "card name" data/inputfile
+```
+
+To limit manual exposure to your collection CSV, and manual searching - delete_card.py searches through a provided csv and removes one copy of a provided cardname, or returns a "not found" error. Future versions will include the ability to specify how many copies you want removed
+
+### fixup_collection.py
+
+```
 fixup_collection.py valuefile bulkfile
+```
 
-If you're like me and want to keep value cards separate from bulk, after you update prices you might find some cards slipping below the bulk threshold in your value collection and vice-versa. Running this script will automatically sort based on a variable "BULK_CEILING" and then sorting each by price
+With an adjustable threshold value, **BULK_CEILING**, given two filepaths, throws all the cards from both lists together and sorts everything above **BULK_CEILING** into the first provided file and everything under or equal to into the other. This allows you to maximize readability of your cards holding actual value and still store the information of your bulk.
