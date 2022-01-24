@@ -5,3 +5,5 @@ data/
 #api stuff teehee
 credentials.json
 token.pickle
+#pycache
+__pycache__/

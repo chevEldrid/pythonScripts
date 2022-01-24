@@ -12,10 +12,6 @@ from googleapiclient.http import MediaFileUpload
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
-
-# TODO: Scryfall is changing the way some of the alternate versions of cards are being handled if it's just etched foil.
-# Add a flag for etched foil and remove collector number from offenders
-
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/drive']
 

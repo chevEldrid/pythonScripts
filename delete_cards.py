@@ -1,15 +1,11 @@
 import sys
 import csv
-from turtle import update
+from csv_file_handler import CSVFileHandler
+from mtg_card import MTGCard
+from utils import BASHColors
 # Given a name and a file, deletes one instance of the card from that file or returns not found
 # FILE = FIRST ARGUMENT, CARDS_TO_REMOVE = SECOND ARGUMENT
 # ---------------------------
-
-
-class bcolors:
-    FAIL = '\033[91m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
 
 
 CSV_ARG_POS = 1
@@ -18,22 +14,6 @@ CARDLIST_ARG_POS = 2
 card_list = []
 removal_list = []
 card_qty = 0
-
-
-def read_collection_file(file):
-    temp = []
-    with open(file) as csvfile:
-        readCSV = csv.reader(csvfile, delimiter=',')
-        for row in readCSV:
-            try:
-                temp.append((row[0], row[1], row[2]))
-                # print(row)
-            except:
-                print(
-                    "Error on {0}. Will be dropped from Table".format(row[0]))
-    # create copy of cards list to iterate through and not mess up for loop
-    del temp[0]
-    return temp
 
 
 def generate_card_name(line):
@@ -50,71 +30,48 @@ def read_removal_file(file):
             cards_to_remove.append(generate_card_name(line))
     return cards_to_remove
 
-# removes tags given to card name on sheet
-
-
-def get_name(card):
-    words = card.split()
-    name = []
-    for word in words:
-        # if card is foil or etched foil...
-        if "*" in word:
-            continue
-        # if card has set code in the form [kld]...
-        if "[" in word:
-            continue
-        # if card had collectors number in form {126}...
-        if "{" in word:
-            continue
-        name.append(word)
-    return " ".join(name)
-
 
 def update_card_qty(collection, card_name):
     list_result = []
     found = False
     for i, val in enumerate(collection):
-        name = get_name(val[0])
-        full_name = val[0]
-        qty = int(val[1])
-        price = float(val[2])
-        # if the card hasn't already been found...
+        card = MTGCard(val[0], val[1], val[2])
+        # if the card hasn't already been found...'
+        name = card.get_name()
         if not found and name == card_name:
             found = True
-            card_qty = (qty - 1)
-            if qty > 1:
-                list_result.append((name, (qty - 1), price))
-            print(bcolors.OKGREEN+"SUCCESS"+bcolors.ENDC+": " + card_name+" found. Removing " +
-                  full_name+". You now have " + str(card_qty)+".")
+            card.quantity = card.quantity - 1
+            if card.quantity > 0:
+                list_result.append(card.print_card())
+            print(f"{BASHColors.OKGREEN}SUCCESS{BASHColors.ENDC}: {card_name} found. Removing {card.full_name}. You now have {card.quantity}.")
         else:
-            list_result.append((full_name, qty, price))
+            list_result.append(card.print_card())
     if not found:
-        print(bcolors.FAIL+"ERROR"+bcolors.ENDC+": "+card_name +
-              " could not be found in the selected file...")
+        print(f"{BASHColors.FAIL}ERROR{BASHColors.ENDC}: {card_name} could not be found in the selected file")
     return list_result
 
 
-try:
-    with open(sys.argv[CSV_ARG_POS]) as csvfile:
-        readCSV = csv.reader(csvfile, delimiter=',')
-        print(sys.argv[CSV_ARG_POS] + " successfully read in")
-    print("Will delete one instance of all cards in " +
-          sys.argv[CARDLIST_ARG_POS])
-except:
-    print("ERROR: csv file could not be read. Please input name of csvs as second arg")
-    sys.exit()
+def main():
+    collection_file = sys.argv[CSV_ARG_POS]
+    removal_file = sys.argv[CARDLIST_ARG_POS]
 
-collection_file = sys.argv[CSV_ARG_POS]
-removal_file = sys.argv[CARDLIST_ARG_POS]
+    csv_file_reader = CSVFileHandler(collection_file)
 
-card_list = read_collection_file(collection_file)
-removal_list = read_removal_file(removal_file)
+    if(csv_file_reader.file_exists()):
+        print(
+            f"{collection_file} successfully read in. Will delete one instance of all cards in {removal_file}.")
+    else:
+        print("ERROR: csv file could not be read. Please input name of csvs as second arg")
+        sys.exit()
 
-for card_name in removal_list:
-    card_list = update_card_qty(card_list, card_name)
+    card_list = csv_file_reader.read_file()
+    removal_list = read_removal_file(removal_file)
 
-with open(collection_file, "w") as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(["card", "qty", "price"])
-    for card in card_list:
-        writer.writerow([card[0], card[1], card[2]])
+    for card_name in removal_list:
+        card_list = update_card_qty(card_list, card_name)
+
+    csv_file_reader.write_file(card_list)
+
+
+if __name__ == "__main__":
+    main()
