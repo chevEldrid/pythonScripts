@@ -1,9 +1,9 @@
 import sys
-import csv
-import requests
-import json
-import time
 from datetime import date
+from csv_file_handler import CSVFileHandler
+from mtg_card import MTGCard
+from scryfall_fetcher import ScryfallFetcher
+from utils import BASHColors
 # google stuff
 import pickle
 import os.path
@@ -20,195 +20,13 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 #                        [-g] - rocket that card file to the goog
 #                        [-l] - prints more details for debugging
 # Ascii codes for colored ouput
+CSV_ARG_POS = 1
 
-
-class bcolors:
-    FAIL = '\033[91m'
-    OKGREEN = '\033[92m'
-    ENDC = '\033[0m'
-
-
-#
-card_file = ""
-out_file = ""
-cards = []  # name, qty, price
-result_names = []  # list of result card names
-result = []  # generated card list
-# argv stuff
-reprice = True
-condense = True
-logCards = False
-uploadCards = False
-# pricing info
-total_value = 0.0
-new_value = 0.0
-bulk_count = 0
 # customizable fields - use to adjust printout of card price changes
 MIN_DELT = 1.00
 MIN_MOD = 0.10
 BULK_CEILING = 0.99
 BULK_RATE = 5  # x$/1000 bulk cards
-# constants
-VARIATIONS = ["HHO", "CMB1", "CMB2"]
-
-
-def is_float(word):
-    temp = False
-    try:
-        float(word)
-        temp = True
-    except:
-        temp = False
-    return temp
-
-# given scryfall api card data, finds paper printing with cheapest price
-
-
-def cheapest_print(cardData, foil, etched_foil, set_code, col_number):
-    printings = cardData["data"]
-    prices = []
-    #print("col_number selected: "+col_number)
-    for price in printings:
-        # if foil flags, use foil prices
-        if foil:
-            cardPrice = price["prices"]["usd_foil"]
-        elif etched_foil:
-            cardPrice = price["prices"]["usd_etched"]
-        else:
-            cardPrice = price["prices"]["usd"]
-        # special filters
-        if price["oversized"] == True:
-            continue
-        if price["set_type"] == "memorabilia":
-            continue
-        # if card has no usd price, it might only have a foil price
-        if not is_float(cardPrice):
-            cardPrice = price["prices"]["usd_foil"]
-        # if still doesn't have a card price, might be only an etched foil
-        if not is_float(cardPrice):
-            cardPrice = price["prices"]["usd_etched"]
-        if cardPrice != None:
-            # if specific collector numnber wanted
-            col_num_cleared = False
-            if col_number == 0:
-                col_num_cleared = True
-            elif price["collector_number"].upper() == str(col_number).upper():
-                col_num_cleared = True
-            # if specific set wanted...
-            set_cleared = False
-            if set_code == "":
-                set_cleared = True
-            elif price["set"].upper() == set_code.upper():
-                set_cleared = True
-            # checks if specific conditions met
-            if set_cleared and col_num_cleared:
-                prices.append(float(cardPrice))
-    return min(prices)
-
-# given card name, pings scryfall for card data
-
-
-def get_price(card, foil, etched_foil, set_code, col_number):
-    price = -1
-    card_name = get_name(card)
-    price_found = False
-    if logCards:
-        print(str(card_name)+":- GET PRICE")
-    # this gets almost every card but "non legal ones" have some exceptions...
-    try:
-        url = "https://api.scryfall.com/cards/search?q=!\"{0}\"&order={1}&unique=prints".format(
-            card_name, "name")
-        # print(url)
-        r = requests.get(url)
-        #print("request got")
-        x = json.loads(r.text)
-        # pass foil flag to cheapest print
-        if logCards:
-            print(str(card_name)+":- GET CHEAPEST")
-        price = cheapest_print(x, foil, etched_foil, set_code, col_number)
-        price_found = True
-        time.sleep(.15)
-    except:
-        time.sleep(.15)
-        for set in VARIATIONS:
-            try:
-                url = "https://api.scryfall.com/cards/search?q=s%3A{0}+name=!\"{1}\"&order={2}&unique=prints".format(
-                    set, card_name, "name")
-                # print(url)
-                r = requests.get(url)
-                #print("request got")
-                x = json.loads(r.text)
-                # pass foil flag to cheapest print
-                if logCards:
-                    print(str(card_name)+":- GET CHEAPEST")
-                price = cheapest_print(
-                    x, foil, etched_foil, set_code, col_number)
-                price_found = True
-                break
-            except:
-                time.sleep(.15)
-    if not price_found:
-        print("Error, no price could be found for " + card)
-    return price
-
-# given card name, is the card foil
-
-
-def is_foil(card):
-    words = card.split()
-    for word in words:
-        if word == "*f*":
-            return True
-    return False
-
-# given card name, is the card etched foil
-
-
-def is_etched_foil(card):
-    words = card.split()
-    for word in words:
-        if word == "*ef":
-            return True
-    return False
-
-# given card name, gets set code
-
-
-def get_set_code(card):
-    words = card.split()
-    for word in words:
-        if "[" in word:
-            return word[1:-1]
-    return ""
-
-# given card name, gets collectors number
-
-
-def get_collector_number(card):
-    words = card.split()
-    for word in words:
-        if "{" in word:
-            return int(word[1:-1])
-    return 0
-
-# removes tags given to card name on sheet
-
-
-def get_name(card):
-    words = card.split()
-    name = []
-    for word in words:
-        # if card is foil or etched foil...
-        if "*" in word:
-            continue
-        # if card has set code in the form [kld]...
-        if "[" in word:
-            continue
-        # if card had collectors number in form {126}...
-        if "{" in word:
-            continue
-        name.append(word)
-    return " ".join(name)
 
 
 def upload_to_google(filename, filepath, filetype):
@@ -239,116 +57,116 @@ def upload_to_google(filename, filepath, filetype):
     file = service.files().create(body=file_metadata,
                                   media_body=media,
                                   fields='id').execute()
-    if logCards:
-        print('File ID: %s' % file.get('id'))
 
 
-# ---------------------------
-# intake output file
-try:
-    with open(sys.argv[1]) as csvfile:
-        readCSV = csv.reader(csvfile, delimiter=',')
-        print(sys.argv[1] + " successfully read in")
-except:
-    print("ERROR: csv file could not be read. Please input name of csv as first arg")
-    sys.exit()
-card_file = sys.argv[1]
-out_file = sys.argv[1]
-# check for arg about repricing list
-if '-r' in sys.argv:
-    reprice = False
-    print("Will not pull new price data from scryfall")
-else:
-    print("Will pull new price data from scryfall")
-# check for arg about condensing list
-if '-p' in sys.argv:
-    condense = False
-    print("Will not check for consolidation")
-else:
-    print("Will consolidate all duplicates")
-if '-l' in sys.argv:
-    logCards = True
-    print("Will print more information about processes")
-# check for arg about uploading to the goog
-if '-g' in sys.argv:
-    uploadCards = True
-    print("Will upload card file to the goog")
-# bring in file with all card information...
-with open(card_file) as csvfile:
-    readCSV = csv.reader(csvfile, delimiter=',')
-    for row in readCSV:
-        try:
-            cards.append((row[0], row[1], row[2]))
-            # print(row)
-        except:
-            print("Error on {0}. Will be dropped from Table".format(row[0]))
-# create copy of cards list to iterate through and not mess up for loop
-del cards[0]
-# sort for duplicates
-for i, val in enumerate(cards):
-    name = val[0]
-    qty = int(val[1])
-    old_price = float(val[2])
-    # if the card hasn't already been found...
-    if name not in result_names:
-        if reprice:
-            foil = is_foil(name)
-            etched_foil = is_etched_foil(name)
-            set_code = get_set_code(name)
-            collector_number = get_collector_number(name)
-            price = float(get_price(name, foil, etched_foil,
-                          set_code, collector_number))
-        else:
-            price = float(val[2])
-        # iterate through every remaining entry in table, if condensing
-        if condense:
-            for j in range(i+1, len(cards)):
-                if cards[j][0] == name:
-                    qty += int(cards[j][1])
-        # if there was an error with the price pulling...
-        if price > 0:
-            result.append((name, qty, price))
-            # keep track of new value added since last run (good when uploading a bunch of stuff)
-            if old_price == 0 and price > BULK_CEILING:
-                new_value += price
-            elif old_price == 0 and (price > 0 and price < BULK_CEILING):
-                new_value += (1/1000.0*BULK_RATE)
-            # if there's been a considerable change in price...
-            # different conditions if price is sub dollar
-            delta = abs(price - old_price)
-            min_reached = delta > MIN_DELT
-            if min_reached and price >= (1.0 + MIN_MOD) * old_price:
-                print(bcolors.OKGREEN+"Spike"+bcolors.ENDC +
-                      " on: {0}: From ${1} to ${2} (You have {3})".format(name, old_price, price, qty))
-            if min_reached and price <= (1.0 - MIN_MOD) * old_price:
-                print(bcolors.FAIL+"Drop"+bcolors.ENDC +
-                      " on: {0}: From ${1} to ${2} (You have {3})".format(name, old_price, price, qty))
-        else:
-            result.append((name, qty, old_price))
-        # only add result to result name table if we're preventing duplicate searches
-        if condense:
-            result_names.append(name)
-# sort prices from high to low
-result = sorted(result, key=lambda tup: float(tup[2]), reverse=True)
-# now print to csv
-with open(out_file, "w") as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(["card", "qty", "price"])
+def set_command_flags(command_flags):
+    # default values
+    reprice = condense = upload_cards = True
+    log_cards = False
+
+    if '-r' in command_flags:
+        reprice = False
+        print("Will not pull new price data from scryfall")
+    else:
+        print("Will pull new price data from scryfall")
+    # check for arg about condensing list
+    if '-p' in command_flags:
+        condense = False
+        print("Will not check for consolidation")
+    else:
+        print("Will consolidate all duplicates")
+    if '-l' in command_flags:
+        log_cards = True
+        print("Will print more information about processes")
+    # check for arg about uploading to the goog
+    if '-g' in command_flags:
+        upload_cards = True
+        print("Will upload card file to the goog")
+    # bring in file with all card information...
+    return [reprice, condense, log_cards, upload_cards]
+
+
+def main():
+    card_file = sys.argv[CSV_ARG_POS]
+    out_file = sys.argv[CSV_ARG_POS]
+    csv_file_reader = CSVFileHandler(card_file)
+
+    if(csv_file_reader.file_exists()):
+        print(f"{card_file} successfully read in.")
+    else:
+        print("ERROR: csv file could not be read. Please input csv as first argument")
+        sys.exit()
+
+    # set command line flags
+    reprice, condense, log_cards, upload_cards = set_command_flags(sys.argv)
+    # read in card file
+    cards = csv_file_reader.read_file()
+
+    result = []
+    result_names = []
+    new_value = 0.0
+    for i, val in enumerate(cards):
+        card = MTGCard(val[0], val[1], val[2])
+        # if the card hasn't already been found...
+        if card.name not in result_names:
+            if reprice:
+                price = ScryfallFetcher.fetch_card_prices(card)
+            else:
+                price = float(card.price)
+            # iterate through every remaining entry in table, if condensing
+            if condense:
+                for j in range(i+1, len(cards)):
+                    if cards[j][0] == card.name:
+                        card.quantity += int(cards[j][1])
+            # if there was an error with the price pulling...
+            if price > 0:
+                result.append((card.name, card.quantity, price))
+                # keep track of new value added since last run (good when uploading a bunch of stuff)
+                if card.price == 0 and price > BULK_CEILING:
+                    new_value += price
+                elif card.price == 0 and (price > 0 and price < BULK_CEILING):
+                    new_value += (1/1000.0*BULK_RATE)
+                # if there's been a considerable change in price...
+                # different conditions if price is sub dollar
+                delta = abs(price - card.price)
+                min_reached = delta > MIN_DELT
+                if min_reached and price >= (1.0 + MIN_MOD) * card.price:
+                    print(
+                        f"{BASHColors.OKGREEN}Spike{BASHColors.ENDC} on: {card.name}: From ${card.price} to {price} (You have {card.quantity})")
+                if min_reached and price <= (1.0 - MIN_MOD) * card.price:
+                    print(
+                        f"{BASHColors.FAIL}Drop{BASHColors.ENDC} on: {card.name}: From ${card.price} to ${price} (You have {card.quantity})")
+            else:
+                result.append((card.name, card.quantity, card.price))
+            # only add result to result name table if we're preventing duplicate searches
+            if condense:
+                result_names.append(card.name)
+
+    # sort prices from high to low
+    result = sorted(result, key=lambda tup: float(tup[2]), reverse=True)
+    # generate statistics
+    total_value = 0.0
+    bulk_count = 0
     for card in result:
-        # generate pricing info...
         if float(card[2]) > BULK_CEILING:
             total_value += (float(card[2]) * int(card[1]))  # price * qty
         else:
             bulk_count += int(card[1])  # qty
-        writer.writerow([card[0], card[1], card[2]])
-collection_value = total_value + (bulk_count/1000.0*BULK_RATE)
-print("Total collection valued at {0:.2f}, with bulk rated at {1} per thousand".format(
-    collection_value, BULK_RATE))
-print("New additions valued at {0:.2f}, with same bulk rating. Nice!".format(
-    new_value))
-if uploadCards:
-    print("Attempting to upload to the Google....")
-    # assuming data folder
-    googFileName = out_file.split('/')[1] + str(date.today())
-    upload_to_google(out_file.split('/')[1], out_file, 'text/csv')
-    print("Upload successful! Byebye!")
+
+    csv_file_reader.write_file(result)
+
+    collection_value = total_value + (bulk_count/1000.0*BULK_RATE)
+    print("Total collection valued at {0:.2f}, with bulk rated at {1} per thousand".format(
+        collection_value, BULK_RATE))
+    print("New additions valued at {0:.2f}, with same bulk rating. Nice!".format(
+        new_value))
+    if upload_cards:
+        print("Attempting to upload to the Google....")
+        # assuming data folder
+        googFileName = out_file.split('/')[1] + str(date.today())
+        upload_to_google(out_file.split('/')[1], out_file, 'text/csv')
+        print("Upload successful! Byebye!")
+
+
+if __name__ == "__main__":
+    main()

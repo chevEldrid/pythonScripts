@@ -1,5 +1,4 @@
 import sys
-import csv
 from csv_file_handler import CSVFileHandler
 from mtg_card import MTGCard
 from utils import BASHColors
