@@ -2,6 +2,17 @@ A set of mtg collection-related scripts for inventory management and price compa
 
 ## Scripts:
 
+### load_collection.py
+
+```
+python load_collection.py data/inputfile.txt
+```
+
+update_csv.py requires cards to be stored in a specific csv file format where each row is:
+**card_name, card_quantity, card_price**
+This is not how many services/exports provide cards so this script reads an mtgo-style export txt file and generates a csv with the same filename as the provided txt file and sets all prices to 0.0
+Script assumes cards are one-per-row and in the format of "4x Island" - others will not work
+
 ### update_csv.py
 
 ```
@@ -25,13 +36,13 @@ Script printout can be adjusted by the following 4 variables:
 
 Any cards with a price of "0" upon script run will be tallied seperately to provide a value of "new cards since last run", an easier way to see just how much those new commander cards or a box contents' are worth.
 
-### delete_card.py
+### delete_cards.py
 
 ```
-delete_card.py "card name" data/inputfile
+delete_card.py data/inputfile cards_to_remove.txt
 ```
 
-To limit manual exposure to your collection CSV, and manual searching - delete_card.py searches through a provided csv and removes one copy of a provided cardname, or returns a "not found" error. Future versions will include the ability to specify how many copies you want removed
+To limit manual exposure to your collection CSV, and manual searching - delete_cards.py searches through a provided csv and removes one copy of every card in a provided txt file, or returns a "not found" error per card. Future versions will include the ability to specify how many copies you want removed.
 
 ### fixup_collection.py
 

@@ -1,9 +1,9 @@
 import sys
 from datetime import date
-from csv_file_handler import CSVFileHandler
-from mtg_card import MTGCard
-from scryfall_fetcher import ScryfallFetcher
-from utils import BASHColors
+from shared.csv_file_handler import CSVFileHandler
+from shared.mtg_card import MTGCard
+from shared.scryfall_fetcher import ScryfallFetcher
+from shared.utils import BASHColors
 # google stuff
 import pickle
 import os.path
@@ -132,10 +132,10 @@ def main():
                 min_reached = delta > MIN_DELT
                 if min_reached and price >= (1.0 + MIN_MOD) * card.price:
                     print(
-                        f"{BASHColors.OKGREEN}Spike{BASHColors.ENDC} on: {card.name}: From ${card.price} to {price} (You have {card.quantity})")
+                        f"{BASHColors.OKGREEN}Spike{BASHColors.ENDC} on: {card.full_name}: From ${card.price} to {price} (You have {card.quantity})")
                 if min_reached and price <= (1.0 - MIN_MOD) * card.price:
                     print(
-                        f"{BASHColors.FAIL}Drop{BASHColors.ENDC} on: {card.name}: From ${card.price} to ${price} (You have {card.quantity})")
+                        f"{BASHColors.FAIL}Drop{BASHColors.ENDC} on: {card.full_name}: From ${card.price} to ${price} (You have {card.quantity})")
             else:
                 result.append((card.name, card.quantity, card.price))
             # only add result to result name table if we're preventing duplicate searches

@@ -1,5 +1,3 @@
-import sys
-import csv
 import requests
 import json
 import time

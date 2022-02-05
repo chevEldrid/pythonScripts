@@ -1,7 +1,7 @@
 import sys
-from csv_file_handler import CSVFileHandler
-from mtg_card import MTGCard
-from utils import BASHColors
+from shared.csv_file_handler import CSVFileHandler
+from shared.mtg_card import MTGCard
+from shared.utils import BASHColors
 # Given a name and a file, deletes one instance of the card from that file or returns not found
 # FILE = FIRST ARGUMENT, CARDS_TO_REMOVE = SECOND ARGUMENT
 # ---------------------------
