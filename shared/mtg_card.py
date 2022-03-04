@@ -1,4 +1,4 @@
-from utils import is_float
+from shared.utils import is_float
 
 
 class MTGCard:

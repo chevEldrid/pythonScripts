@@ -108,7 +108,7 @@ def main():
     for i, val in enumerate(cards):
         card = MTGCard(val[0], val[1], val[2])
         # if the card hasn't already been found...
-        if card.name not in result_names:
+        if card.full_name not in result_names:
             if reprice:
                 price = ScryfallFetcher.fetch_card_prices(card)
             else:
@@ -116,11 +116,11 @@ def main():
             # iterate through every remaining entry in table, if condensing
             if condense:
                 for j in range(i+1, len(cards)):
-                    if cards[j][0] == card.name:
+                    if cards[j][0] == card.full_name:
                         card.quantity += int(cards[j][1])
             # if there was an error with the price pulling...
             if price > 0:
-                result.append((card.name, card.quantity, price))
+                result.append((card.full_name, card.quantity, price))
                 # keep track of new value added since last run (good when uploading a bunch of stuff)
                 if card.price == 0 and price > BULK_CEILING:
                     new_value += price
@@ -137,10 +137,10 @@ def main():
                     print(
                         f"{BASHColors.FAIL}Drop{BASHColors.ENDC} on: {card.full_name}: From ${card.price} to ${price} (You have {card.quantity})")
             else:
-                result.append((card.name, card.quantity, card.price))
+                result.append((card.full_name, card.quantity, card.price))
             # only add result to result name table if we're preventing duplicate searches
             if condense:
-                result_names.append(card.name)
+                result_names.append(card.full_name)
 
     # sort prices from high to low
     result = sorted(result, key=lambda tup: float(tup[2]), reverse=True)
