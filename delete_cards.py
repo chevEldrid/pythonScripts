@@ -36,7 +36,7 @@ def update_card_qty(collection, card_name):
     for i, val in enumerate(collection):
         card = MTGCard(val[0], val[1], val[2])
         # if the card hasn't already been found...'
-        name = card.get_name()
+        name = card.full_name
         if not found and name == card_name:
             found = True
             card.quantity = card.quantity - 1
